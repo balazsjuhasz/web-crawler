@@ -36,7 +36,31 @@ const getURLsFromHTML = (htmlBody, baseURL) => {
     return urls;
 };
 
+const crawlPage = async (url) => {
+    try {
+        const response = await fetch(url);
+        if (response.status >= 400) {
+            console.log(
+                `Unexpected status code: ${response.status} for page: ${url}`
+            );
+            return;
+        }
+        const contentType = response.headers.get("content-type");
+        if (!contentType.includes("text/html")) {
+            console.log(
+                `Unexpected Content-Type received: ${contentType} for page ${url}`
+            );
+            return;
+        }
+        const body = await response.text();
+        console.log(body);
+    } catch (err) {
+        console.log(`Can not crawl url: ${url}. Message: ${err.message}`);
+    }
+};
+
 module.exports = {
-    normalizeURL,
+    crawlPage,
     getURLsFromHTML,
+    normalizeURL,
 };
