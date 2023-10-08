@@ -36,27 +36,51 @@ const getURLsFromHTML = (htmlBody, baseURL) => {
     return urls;
 };
 
-const crawlPage = async (url) => {
+const crawlPage = async (baseURL, currentURL, pages) => {
+    // Outside of current domain, skip
+    const baseURLObj = new URL(baseURL);
+    const currentURLObj = new URL(currentURL);
+    if (baseURLObj.hostname !== currentURLObj.hostname) {
+        return pages;
+    }
+
+    // Update counts
+    location = normalizeURL(currentURL);
+    if (location in pages) {
+        pages[location]++;
+        return pages;
+    }
+
+    pages[location] = 1;
+
+    // Fetch URL
     try {
-        const response = await fetch(url);
+        console.log(`Craw url: ${currentURL}`);
+        const response = await fetch(currentURL);
         if (response.status >= 400) {
             console.log(
-                `Unexpected status code: ${response.status} for page: ${url}`
+                `Unexpected status code: ${response.status} for page: ${currentURL}`
             );
-            return;
+            return pages;
         }
         const contentType = response.headers.get("content-type");
         if (!contentType.includes("text/html")) {
             console.log(
-                `Unexpected Content-Type received: ${contentType} for page ${url}`
+                `Unexpected Content-Type received: ${contentType} for page ${currentURL}`
             );
-            return;
+            return pages;
         }
         const body = await response.text();
-        console.log(body);
+        const newURLs = getURLsFromHTML(body, baseURL);
+        for (const url of newURLs) {
+            pages = await crawlPage(baseURL, url, pages);
+        }
     } catch (err) {
-        console.log(`Can not crawl url: ${url}. Message: ${err.message}`);
+        console.log(
+            `Can not crawl url: ${currentURL}. Message: ${err.message}`
+        );
     }
+    return pages;
 };
 
 module.exports = {
